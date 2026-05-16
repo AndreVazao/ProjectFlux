@@ -33,6 +33,14 @@ class FluxUI(QWidget):
         btn_pr = QPushButton("Create PR")
         btn_pr.clicked.connect(self.create_pr)
 
+        btn_status = QPushButton("Check Build Status")
+        btn_status.clicked.connect(self.check_status)
+        
+        btn_merge = QPushButton("Safe Merge PR")
+        btn_merge.clicked.connect(self.safe_merge)
+        
+        layout.addWidget(btn_status)
+        layout.addWidget(btn_merge)
         layout.addWidget(btn_create_repo)
         layout.addWidget(btn_clone)
         layout.addWidget(btn_branch)
