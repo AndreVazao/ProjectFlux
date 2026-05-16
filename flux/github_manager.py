@@ -1,5 +1,6 @@
 import os
 import requests
+from github import Github
 
 
 class GitHubManager:
@@ -10,6 +11,8 @@ class GitHubManager:
             "Authorization": f"token {self.token}",
             "Accept": "application/vnd.github+json"
         }
+        self.client = Github(self.token) if self.token else None
+        self.user = self.client.get_user() if self.client else None
         self.username = self.get_user()
 
     # -------------------------
@@ -30,6 +33,19 @@ class GitHubManager:
     # -------------------------
     # REPO
     # -------------------------
+
+    def list_repos(self):
+        if not self.user:
+            return []
+        repos = self.user.get_repos()
+        return [
+            {
+                "name": r.name,
+                "id": r.id,
+                "clone_url": r.clone_url
+            }
+            for r in repos
+        ]
 
     def create_repo(self, name):
         if not self.username:
