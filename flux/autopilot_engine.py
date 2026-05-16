@@ -5,6 +5,9 @@ from flux.workflow_generator import WorkflowGenerator
 from flux.git_manager import GitManager
 from flux.fix_engine import FixEngine
 from flux.auto_engine import AutoEngine
+from flux.ai_engine import AIEngine
+from flux.memory_engine import MemoryEngine
+from flux.evolution_engine import EvolutionEngine
 
 
 class AutopilotEngine:
@@ -12,12 +15,39 @@ class AutopilotEngine:
     def __init__(self, github, deploy):
         self.github = github
         self.deploy = deploy
+        self.ai = AIEngine()
+        self.memory = MemoryEngine()
 
     # -------------------------
     # MAIN LOOP
     # -------------------------
 
     def run(self, repo_name, repo_path):
+        try:
+            # AI THINK
+            decision = self.ai.think(repo_name)
+            action = decision.get("action")
+
+            if action == "fix":
+                result = FixEngine.run(repo_path, "")
+            elif action == "deploy":
+                result = self.deploy.auto_deploy_smart(repo_name, repo_path)
+            elif action == "sync":
+                from flux.sync_engine import SyncEngine
+                result = SyncEngine.sync(repo_path)
+            elif action == "evolve":
+                result = EvolutionEngine().evolve(repo_path)
+            else:
+                # FALLBACK TO LEGACY RUN IF AI SAYS NOTHING OR FOR INITIAL SETUP
+                return self.run_legacy(repo_name, repo_path)
+
+            self.memory.save_decision(repo_name, f"{action} → {decision.get('reason')}")
+            return f"{action.upper()} → {result}"
+
+        except Exception as e:
+            return f"❌ Autopilot error: {str(e)}"
+
+    def run_legacy(self, repo_name, repo_path):
         try:
             # 1. Detect project
             project_type = AutoEngine.detect_project_type(repo_path)
@@ -54,7 +84,7 @@ class AutopilotEngine:
             return self.deploy.auto_deploy_smart(repo_name, repo_path)
 
         except Exception as e:
-            return f"❌ Autopilot error: {str(e)}"
+            return f"❌ Legacy Autopilot error: {str(e)}"
 
     # -------------------------
     # HELPERS
