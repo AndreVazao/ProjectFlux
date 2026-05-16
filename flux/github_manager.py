@@ -154,3 +154,24 @@ class GitHubManager:
         except Exception as e:
             print(f"Error getting latest logs: {e}")
             return None
+
+    def trigger_workflow(self, repo_name, workflow_file):
+        if not self.client:
+            return "error: github client not initialized"
+        try:
+            repo = self.client.get_repo(f"{self.username}/{repo_name}")
+            workflows = repo.get_workflows()
+            target_wf = None
+            for wf in workflows:
+                if wf.path.endswith(workflow_file) or wf.name == workflow_file:
+                    target_wf = wf
+                    break
+            if target_wf:
+                target_wf.create_dispatch("main")
+                return "workflow_triggered"
+            else:
+                repo.create_repository_dispatch("trigger-workflow", {"ref": "main"})
+                return "repository_dispatch_triggered"
+        except Exception as e:
+            print(f"Error triggering workflow: {e}")
+            return f"error: {str(e)}"
