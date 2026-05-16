@@ -1,0 +1,32 @@
+name: Build EXE
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller PyQt6 requests
+
+    - name: Build EXE
+      run: |
+        pyinstaller --onefile --noconsole main.py
+
+    - name: Upload EXE
+      uses: actions/upload-artifact@v4
+      with:
+        name: ProjectFlux-EXE
+        path: dist/main.exe
