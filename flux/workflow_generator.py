@@ -1,4 +1,23 @@
 from pathlib import Path
+from flux.project_detector import ProjectDetector
+
+class WorkflowGenerator:
+
+    @staticmethod
+    def auto(repo_path):
+        project_type = ProjectDetector.detect(repo_path)
+
+        if project_type == "python":
+            WorkflowGenerator.generate_python(repo_path)
+
+        elif project_type == "node":
+            WorkflowGenerator.generate_node(repo_path)
+
+        elif project_type == "apk":
+            WorkflowGenerator.generate_apk(repo_path)
+
+        else:
+            raise Exception("Unknown project type")
 
 class WorkflowGenerator:
 
