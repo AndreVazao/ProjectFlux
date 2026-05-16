@@ -22,7 +22,22 @@ class GitHubManager:
         repo = self.user.get_repo(repo_name)
         return repo.create_pull(title=title, body=body, head=head, base=base)
 
-    def merge_pr(self, repo_name, pr_number):
+    def get_latest_workflow_status(self, repo_name):
+        repo = self.user.get_repo(repo_name)
+        runs = repo.get_workflow_runs()
+        if runs.totalCount == 0:
+            return "NO_RUNS"
+
+        latest = runs[0]
+        return latest.conclusion  # success, failure, null
+
+    def safe_merge(self, repo_name, pr_number):
+        status = self.get_latest_workflow_status(repo_name)
+
+        if status != "success":
+            return f"BLOCKED: Workflow status = {status}"
+
         repo = self.user.get_repo(repo_name)
         pr = repo.get_pull(pr_number)
-        return pr.merge()
+        pr.merge()
+        return "MERGED"
