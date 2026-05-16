@@ -31,6 +31,16 @@ class GitHubManager:
         latest = runs[0]
         return latest.conclusion  # success, failure, null
 
+    def get_latest_logs(self, repo_name):
+    repo = self.user.get_repo(repo_name)
+    runs = repo.get_workflow_runs()
+
+    if runs.totalCount == 0:
+        return None
+
+    latest = runs[0]
+    return latest.logs_url
+    
     def safe_merge(self, repo_name, pr_number):
         status = self.get_latest_workflow_status(repo_name)
 
