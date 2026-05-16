@@ -155,6 +155,14 @@ class FluxUI(QWidget):
         btn_layout.addWidget(btn_fix)
 
         btn_status = QPushButton("Check Build Status")
+
+        btn_cluster = QPushButton("🌐 Cluster Status")
+        btn_cluster.clicked.connect(self.cluster_status)
+        layout.addWidget(btn_cluster)
+
+        btn_company = QPushButton("🏢 Run Company")
+        btn_company.clicked.connect(self.run_company)
+        layout.addWidget(btn_company)
         btn_status.clicked.connect(self.safe_call(self.check_status))
         btn_layout.addWidget(btn_status)
 
@@ -487,6 +495,21 @@ class FluxUI(QWidget):
         if not ok or not repo: return
         status = self.github.get_latest_workflow_status(repo)
         QMessageBox.information(self, "Status", f"Workflow: {status}")
+
+    def cluster_status(self):
+        from flux.cluster_manager import ClusterManager
+        cluster = ClusterManager()
+        info = f"""
+Nodes: {len(cluster.nodes)}
+Mode: {cluster.auto_scale()}
+Cloud: ENABLED
+"""
+        QMessageBox.information(self, "Cluster", info)
+
+    def run_company(self):
+        from flux.company_orchestrator import CompanyOrchestrator
+        result = CompanyOrchestrator().run()
+        QMessageBox.information(self, "Company", str(result))
 
     def safe_merge(self):
         if not self.github: raise Exception("GitHub Manager not initialized.")

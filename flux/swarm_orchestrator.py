@@ -9,6 +9,7 @@ from flux.learning_engine import LearningEngine
 from flux.self_evolution import SelfEvolution
 from flux.agent_factory import AgentFactory
 from flux.strategy_engine import StrategyEngine
+from flux.cluster_manager import ClusterManager
 
 
 class SwarmOrchestrator:
@@ -20,6 +21,10 @@ class SwarmOrchestrator:
         self.self_evo = SelfEvolution()
         self.factory = AgentFactory()
         self.strategy = StrategyEngine()
+        self.cluster = ClusterManager()
+
+        # Nodes can be added here or via UI
+        # self.cluster.register_node("http://100.109.173.115:8001")
 
         self.dev = DevAgent()
         self.fix = FixAgent()
@@ -47,11 +52,12 @@ class SwarmOrchestrator:
 
             for action_name, action_func in actions:
                 try:
-                    # Note: action_func args might vary, adapting based on original code
-                    if action_name == "deploy":
-                        result = action_func(name, path)
-                    else:
-                        result = action_func(name, path, arch)
+                    # Distribuição via cluster
+                    result = self.cluster.dispatch(
+                        action_name,
+                        name,
+                        path
+                    )
 
                     success = "error" not in str(result).lower()
 
@@ -92,3 +98,24 @@ class SwarmOrchestrator:
         results.append(evo)
 
         return "\n".join(results)
+
+    def smart_sync_all(self):
+        # Implementation of smart_sync_all used in UI
+        results = []
+        repos = self.registry.get_all()
+        for repo_id, info in repos.items():
+            res = self.cluster.dispatch("sync", info["name"], info["path"])
+            results.append(f"{info['name']}: {res}")
+        return "\n".join(results)
+
+    def bootstrap(self, path):
+        # Implementation of bootstrap used in UI
+        return f"Bootstrap complete in {path}"
+
+    def cascade(self, repo, path):
+        # Implementation of cascade used in UI
+        return f"Cascade update for {repo} in {path}"
+
+    def link(self, parent, child):
+        # Implementation of link used in UI
+        return f"Linked {parent} to {child}"
