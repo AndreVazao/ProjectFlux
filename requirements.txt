@@ -2,3 +2,6 @@ PyQt6
 PyGithub
 gitpython
 requests
+fastapi
+uvicorn
+pydantic
