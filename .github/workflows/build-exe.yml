@@ -22,11 +22,11 @@ jobs:
         pip install pyinstaller PyQt6 requests
 
     - name: Build EXE (FIXED)
-      run: |
-        pyinstaller main.py ^
-        --onefile ^
-        --noconsole ^
-        --add-data "flux;flux"
+  run: |
+    pyinstaller main.py `
+      --onefile `
+      --noconsole `
+      --add-data "flux;flux"
 
     - name: Upload EXE
       uses: actions/upload-artifact@v4
