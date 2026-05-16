@@ -1,0 +1,17 @@
+ProjectFlux/
+├─ .github/
+│  └─ workflows/
+│     └─ build.yml
+├─ flux/
+│  ├─ ai_engine.py
+│  ├─ config.py
+│  ├─ fix_engine.py
+│  ├─ git_manager.py
+│  ├─ github_manager.py
+│  ├─ project_detector.py
+│  ├─ remote_server.py
+│  ├─ ui.py
+│  └─ workflow_generator.py
+├─ main.py
+├─ README.md
+└─ requirements.txt
