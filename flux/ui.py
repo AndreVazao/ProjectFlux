@@ -39,6 +39,10 @@ class FluxUI(QWidget):
         btn_merge = QPushButton("Safe Merge PR")
         btn_merge.clicked.connect(self.safe_merge)
         
+        btn_workflow = QPushButton("Auto Generate Workflow")
+        btn_workflow.clicked.connect(self.generate_workflow)
+        
+        layout.addWidget(btn_workflow)
         layout.addWidget(btn_status)
         layout.addWidget(btn_merge)
         layout.addWidget(btn_create_repo)
@@ -113,6 +117,39 @@ def safe_merge(self):
 
     result = self.github.safe_merge(repo, pr_number)
     QMessageBox.information(self, "Merge Result", result)
+
+def generate_workflow(self):
+    from flux.workflow_generator import WorkflowGenerator
+
+    repo_path, ok = QInputDialog.getText(self, "Repo Path", "Local repo path:")
+    if not ok:
+        return
+
+    choice, ok = QInputDialog.getItem(
+        self,
+        "Workflow Type",
+        "Select type:",
+        ["Python", "Node", "APK"],
+        0,
+        False
+    )
+
+    if not ok:
+        return
+
+    if choice == "Python":
+        WorkflowGenerator.generate_python(repo_path)
+    elif choice == "Node":
+        WorkflowGenerator.generate_node(repo_path)
+    elif choice == "APK":
+        WorkflowGenerator.generate_apk(repo_path)
+
+    QMessageBox.information(self, "OK", "Workflow created")
+
+    # auto commit + push
+    from flux.git_manager import GitManager
+    GitManager.commit_all(repo_path, "auto workflow")
+    GitManager.push(repo_path)
 
 def start_app():
     app = QApplication(sys.argv)
