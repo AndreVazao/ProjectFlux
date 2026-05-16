@@ -186,6 +186,31 @@ class FluxUI(QWidget):
         btn_pr.clicked.connect(self.safe_call(self.create_pr))
         btn_layout.addWidget(btn_pr)
 
+        # 🧠 ADAPTIVE & REMOTE
+        btn_learning = QPushButton("🧠 View Learning")
+        btn_learning.clicked.connect(self.safe_call(self.view_learning))
+        btn_layout.addWidget(btn_learning)
+
+        btn_self_evolve = QPushButton("🧬 Evolve System")
+        btn_self_evolve.clicked.connect(self.safe_call(self.self_evolve))
+        btn_layout.addWidget(btn_self_evolve)
+
+        btn_create_agent = QPushButton("🤖 Create Agent")
+        btn_create_agent.clicked.connect(self.safe_call(self.create_agent))
+        btn_layout.addWidget(btn_create_agent)
+
+        btn_remote_start = QPushButton("🌐 Remote Start")
+        btn_remote_start.clicked.connect(self.safe_call(self.remote_start))
+        btn_layout.addWidget(btn_remote_start)
+
+        btn_remote_stop = QPushButton("🌐 Remote Stop")
+        btn_remote_stop.clicked.connect(self.safe_call(self.remote_stop))
+        btn_layout.addWidget(btn_remote_stop)
+
+        btn_remote_status = QPushButton("🌐 Remote Status")
+        btn_remote_status.clicked.connect(self.safe_call(self.remote_status))
+        btn_layout.addWidget(btn_remote_status)
+
         scroll.setWidget(content_widget)
         left_layout.addWidget(scroll)
 
@@ -248,6 +273,55 @@ class FluxUI(QWidget):
         result = self.memory.capture_commits()
         QMessageBox.information(self, "Memory", result)
 
+
+    # -------------------------
+    # ADAPTIVE SYSTEM ACTIONS
+    # -------------------------
+
+    def view_learning(self):
+        import json
+        try:
+            with open("flux_learning.json") as f:
+                data = json.load(f)
+            QMessageBox.information(self, "Learning", json.dumps(data, indent=2))
+        except:
+            QMessageBox.warning(self, "Error", "No learning data yet")
+
+    def self_evolve(self):
+        from flux.self_evolution import SelfEvolution
+        result = SelfEvolution().evolve_system()
+        QMessageBox.information(self, "Evolution", result)
+
+    def create_agent(self):
+        from flux.agent_factory import AgentFactory
+        name, ok = QInputDialog.getText(self, "Agent Name", "Name:")
+        if not ok: return
+        purpose, ok = QInputDialog.getText(self, "Purpose", "Purpose:")
+        if not ok: return
+        result = AgentFactory().create_agent(name, purpose)
+        QMessageBox.information(self, "Agent", result)
+
+    # -------------------------
+    # REMOTE ACTIONS
+    # -------------------------
+
+    def remote_start(self):
+        from flux.remote_client import RemoteClient
+        client = RemoteClient("http://localhost:8000") # Usar localhost para teste
+        res = client.start_ai()
+        QMessageBox.information(self, "Remote", str(res))
+
+    def remote_stop(self):
+        from flux.remote_client import RemoteClient
+        client = RemoteClient("http://localhost:8000")
+        res = client.stop_ai()
+        QMessageBox.information(self, "Remote", str(res))
+
+    def remote_status(self):
+        from flux.remote_client import RemoteClient
+        client = RemoteClient("http://localhost:8000")
+        res = client.status()
+        QMessageBox.information(self, "Remote", str(res))
     def snapshot(self):
         result = self.memory.snapshot_all()
         QMessageBox.information(self, "Snapshot", result)
