@@ -12,6 +12,7 @@ class FluxUI(QWidget):
 
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle("ProjectFlux")
         self.setGeometry(200, 200, 420, 500)
 
@@ -19,7 +20,7 @@ class FluxUI(QWidget):
 
         layout = QVBoxLayout()
 
-        # 🔥 AUTO MODE (zero cliques inteligente)
+        # 🔥 AUTO MODE
         btn_auto = QPushButton("AUTO MODE (Smart Workflow)")
         btn_auto.clicked.connect(self.auto_mode)
 
@@ -55,7 +56,7 @@ class FluxUI(QWidget):
         btn_pr = QPushButton("Create PR")
         btn_pr.clicked.connect(self.create_pr)
 
-        # ORDEM (topo = inteligência)
+        # ORDEM
         layout.addWidget(btn_auto)
         layout.addWidget(btn_fix)
         layout.addWidget(btn_status)
@@ -199,35 +200,49 @@ class FluxUI(QWidget):
         import requests
         from flux.fix_engine import FixEngine
         from flux.git_manager import GitManager
-        
+
         repo_name, ok = QInputDialog.getText(self, "Repo Name", "Repo name:")
         if not ok:
             return
-            
+
         repo_path, ok = QInputDialog.getText(self, "Repo Path", "Local path:")
         if not ok:
             return
-            
+
         logs_url = self.github.get_latest_logs(repo_name)
+
         if not logs_url:
-        QMessageBox.warning(self, "Error", "No logs found")
+            QMessageBox.warning(self, "Error", "No logs found")
             return
 
-        logs = requests.get(logs_url).text
+        try:
+            logs = requests.get(logs_url).text
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to fetch logs: {e}")
+            return
 
         result = FixEngine.run(repo_path, logs)
 
-        GitManager.commit_all(repo_path, f"auto fix: {result['issue']}")
-        GitManager.push(repo_path)
+        try:
+            GitManager.commit_all(repo_path, f"auto fix: {result['issue']}")
+            GitManager.push(repo_path)
+        except Exception as e:
+            QMessageBox.warning(self, "Git Error", str(e))
+            return
 
         QMessageBox.information(
             self,
             "Fix Applied",
             f"Issue: {result['issue']}\nFix: {result['fix']}"
-            )
-    
-    def start_app():
-        app = QApplication(sys.argv)
-        window = FluxUI()
-        window.show()
-        sys.exit(app.exec())
+        )
+
+
+# -------------------------
+# APP START
+# -------------------------
+
+def start_app():
+    app = QApplication(sys.argv)
+    window = FluxUI()
+    window.show()
+    sys.exit(app.exec())
