@@ -93,6 +93,26 @@ class FluxUI(QWidget):
         self.github.create_pr(repo, title, "Auto PR", "dev", "main")
         QMessageBox.information(self, "Success", "PR created")
 
+def check_status(self):
+    repo, ok = QInputDialog.getText(self, "Repo Name", "Repo name:")
+    if not ok:
+        return
+
+    status = self.github.get_latest_workflow_status(repo)
+    QMessageBox.information(self, "Status", f"Workflow: {status}")
+
+
+def safe_merge(self):
+    repo, ok = QInputDialog.getText(self, "Repo Name", "Repo name:")
+    if not ok:
+        return
+
+    pr_number, ok = QInputDialog.getInt(self, "PR Number", "PR number:")
+    if not ok:
+        return
+
+    result = self.github.safe_merge(repo, pr_number)
+    QMessageBox.information(self, "Merge Result", result)
 
 def start_app():
     app = QApplication(sys.argv)
