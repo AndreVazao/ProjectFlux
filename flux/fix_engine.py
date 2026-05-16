@@ -1,32 +1,19 @@
+from flux.ai_engine import AIEngine
+from pathlib import Path
+
 class FixEngine:
 
     @staticmethod
-    def analyze(logs):
-        logs = logs.lower()
+    def run(repo_path, logs):
+        issue = AIEngine.analyze_logs(logs)
+        command = AIEngine.generate_fix(issue)
 
-        if "no module named" in logs:
-            return "missing_python_dependency"
-
-        if "npm ERR!" in logs:
-            return "node_dependency_issue"
-
-        if "gradle" in logs:
-            return "apk_build_issue"
-
-        return "unknown"
-
-    @staticmethod
-    def fix(repo_path, issue_type):
-        from pathlib import Path
-
-        if issue_type == "missing_python_dependency":
+        if issue["type"] == "missing_python_module":
             req = Path(repo_path) / "requirements.txt"
             with open(req, "a") as f:
-                f.write("\nrequests\n")
+                f.write(f"\n{issue['module']}\n")
 
-        elif issue_type == "node_dependency_issue":
-            # placeholder realista (podes expandir depois)
-            pass
-
-        elif issue_type == "apk_build_issue":
-            pass
+        return {
+            "issue": issue,
+            "fix": command
+        }
