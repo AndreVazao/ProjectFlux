@@ -2,38 +2,43 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import subprocess
 import threading
+import os
 
 from flux.workflow_generator import WorkflowGenerator
 from flux.git_manager import GitManager
 from flux.fix_engine import FixEngine
 from flux.github_manager import GitHubManager
 
-github = GitHubManager()
-
 # ⚠️ define aqui o caminho da repo local no PC
-REPO_PATH = "C:\ProgramasGodMode\ProjectFlux"  
+REPO_PATH = os.path.join("C:\\", "ProgramasGodMode", "ProjectFlux")
 
 
 class FluxServer(BaseHTTPRequestHandler):
 
     def do_GET(self):
+        try:
+            if self.path == "/":
+                self.send_html()
 
-        if self.path == "/":
-            self.send_html()
+            elif self.path == "/status":
+                self.send_json({"status": "running"})
 
-        elif self.path == "/status":
-            self.send_json({"status": "running"})
+            elif self.path == "/auto":
+                threading.Thread(target=self.auto_mode, daemon=True).start()
+                self.send_json({"result": "AUTO MODE started"})
 
-        elif self.path == "/auto":
-            threading.Thread(target=self.auto_mode).start()
-            self.send_json({"result": "AUTO MODE started"})
+            elif self.path == "/fix":
+                threading.Thread(target=self.auto_fix, daemon=True).start()
+                self.send_json({"result": "AUTO FIX started"})
 
-        elif self.path == "/fix":
-            threading.Thread(target=self.auto_fix).start()
-            self.send_json({"result": "AUTO FIX started"})
-
-        else:
-            self.send_json({"error": "unknown route"})
+            else:
+                self.send_json({"error": "unknown route"})
+        except Exception as e:
+            print(f"Server error: {e}")
+            try:
+                self.send_json({"error": str(e)})
+            except:
+                pass
 
     # -------------------------
     # REAL ACTIONS
@@ -50,13 +55,18 @@ class FluxServer(BaseHTTPRequestHandler):
 
     def auto_fix(self):
         try:
+            github = GitHubManager()
             logs_url = github.get_latest_logs("ProjectFlux")
+            if not logs_url:
+                print("No logs found for ProjectFlux")
+                return
+
             import requests
-            logs = requests.get(logs_url).text
+            logs = requests.get(logs_url, timeout=15).text
 
             result = FixEngine.run(REPO_PATH, logs)
 
-            GitManager.commit_all(REPO_PATH, f"auto fix: {result}")
+            GitManager.commit_all(REPO_PATH, f"auto fix: {result['issue']}")
             GitManager.push(REPO_PATH)
 
             print("AUTO FIX DONE")
@@ -108,6 +118,9 @@ class FluxServer(BaseHTTPRequestHandler):
 
 
 def start_server(port=5000):
-    server = HTTPServer(("0.0.0.0", port), FluxServer)
-    print(f"Server running on port {port}")
-    server.serve_forever()
+    try:
+        server = HTTPServer(("0.0.0.0", port), FluxServer)
+        print(f"Server running on port {port}")
+        server.serve_forever()
+    except Exception as e:
+        print(f"Failed to start server: {e}")
