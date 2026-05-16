@@ -1,53 +1,93 @@
-from github import Github
-from flux.config import get_github_token
+import os
+import requests
+
 
 class GitHubManager:
 
     def __init__(self):
-        token = get_github_token()
-        if not token:
-            raise Exception("GITHUB_TOKEN not set")
-        self.gh = Github(token)
-        self.user = self.gh.get_user()
+        self.token = os.getenv("GITHUB_TOKEN") or ""
+        self.headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github+json"
+        }
+        self.username = self.get_user()
 
-    def create_repo(self, name):
-        return self.user.create_repo(name)
+    # -------------------------
+    # USER
+    # -------------------------
 
-    def create_branch(self, repo_name, new_branch, base="main"):
-        repo = self.user.get_repo(repo_name)
-        source = repo.get_branch(base)
-        repo.create_git_ref(ref=f"refs/heads/{new_branch}", sha=source.commit.sha)
-
-    def create_pr(self, repo_name, title, body, head, base="main"):
-        repo = self.user.get_repo(repo_name)
-        return repo.create_pull(title=title, body=body, head=head, base=base)
-
-    def get_latest_workflow_status(self, repo_name):
-        repo = self.user.get_repo(repo_name)
-        runs = repo.get_workflow_runs()
-        if runs.totalCount == 0:
-            return "NO_RUNS"
-
-        latest = runs[0]
-        return latest.conclusion  # success, failure, null
-
-    def get_latest_logs(self, repo_name):
-    repo = self.user.get_repo(repo_name)
-    runs = repo.get_workflow_runs()
-
-    if runs.totalCount == 0:
+    def get_user(self):
+        r = requests.get("https://api.github.com/user", headers=self.headers)
+        if r.status_code == 200:
+            return r.json()["login"]
         return None
 
-    latest = runs[0]
-    return latest.logs_url
-    
-    def safe_merge(self, repo_name, pr_number):
-        status = self.get_latest_workflow_status(repo_name)
+    # -------------------------
+    # REPO
+    # -------------------------
+
+    def create_repo(self, name):
+        url = "https://api.github.com/user/repos"
+        data = {"name": name, "private": True}
+        requests.post(url, headers=self.headers, json=data)
+
+    def rename_repo(self, repo, new_name):
+        url = f"https://api.github.com/repos/{self.username}/{repo}"
+        requests.patch(url, headers=self.headers, json={"name": new_name})
+
+    # -------------------------
+    # PR
+    # -------------------------
+
+    def create_pr(self, repo, title, body, head, base):
+        url = f"https://api.github.com/repos/{self.username}/{repo}/pulls"
+        data = {
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base
+        }
+        requests.post(url, headers=self.headers, json=data)
+
+    def safe_merge(self, repo, pr_number):
+        status = self.get_latest_workflow_status(repo)
 
         if status != "success":
-            return f"BLOCKED: Workflow status = {status}"
+            return "❌ Build not passing"
 
-        repo = self.user.get_repo(repo_name)
-        pr = repo.get_pull(pr_number)
-        pr.merge()
-        return "MERGED"
+        url = f"https://api.github.com/repos/{self.username}/{repo}/pulls/{pr_number}/merge"
+        r = requests.put(url, headers=self.headers)
+
+        if r.status_code == 200:
+            return "✅ Merge done"
+        return f"❌ Merge failed: {r.text}"
+
+    # -------------------------
+    # WORKFLOWS
+    # -------------------------
+
+    def get_latest_workflow_status(self, repo):
+        url = f"https://api.github.com/repos/{self.username}/{repo}/actions/runs"
+        r = requests.get(url, headers=self.headers)
+
+        if r.status_code != 200:
+            return "error"
+
+        runs = r.json().get("workflow_runs", [])
+        if not runs:
+            return "no runs"
+
+        return runs[0]["conclusion"]
+
+    def get_latest_logs(self, repo):
+        url = f"https://api.github.com/repos/{self.username}/{repo}/actions/runs"
+        r = requests.get(url, headers=self.headers)
+
+        if r.status_code != 200:
+            return None
+
+        runs = r.json().get("workflow_runs", [])
+        if not runs:
+            return None
+
+        return runs[0]["logs_url"]
