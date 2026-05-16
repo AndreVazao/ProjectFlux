@@ -196,36 +196,38 @@ class FluxUI(QWidget):
     # -------------------------
 
     def auto_fix(self):
-        from flux.fix_engine import FixEngine
         import requests
-
+        from flux.fix_engine import FixEngine
+        from flux.git_manager import GitManager
+        
         repo_name, ok = QInputDialog.getText(self, "Repo Name", "Repo name:")
         if not ok:
             return
-
+            
         repo_path, ok = QInputDialog.getText(self, "Repo Path", "Local path:")
         if not ok:
             return
-
+            
         logs_url = self.github.get_latest_logs(repo_name)
-
         if not logs_url:
-            QMessageBox.warning(self, "Error", "No logs found")
+        QMessageBox.warning(self, "Error", "No logs found")
             return
 
         logs = requests.get(logs_url).text
 
-        issue = FixEngine.analyze(logs)
-        FixEngine.fix(repo_path, issue)
+        result = FixEngine.run(repo_path, logs)
 
-        GitManager.commit_all(repo_path, f"auto fix: {issue}")
+        GitManager.commit_all(repo_path, f"auto fix: {result['issue']}")
         GitManager.push(repo_path)
 
-        QMessageBox.information(self, "Fix", f"Issue detected: {issue}")
-
-
-def start_app():
-    app = QApplication(sys.argv)
-    window = FluxUI()
-    window.show()
-    sys.exit(app.exec())
+        QMessageBox.information(
+            self,
+            "Fix Applied",
+            f"Issue: {result['issue']}\nFix: {result['fix']}"
+            )
+    
+    def start_app():
+        app = QApplication(sys.argv)
+        window = FluxUI()
+        window.show()
+        sys.exit(app.exec())
