@@ -1,5 +1,6 @@
 import threading
 import logging
+import requests
 from flux.config import logger
 from flux.agents.dev_agent import DevAgent
 from flux.agents.fix_agent import FixAgent
@@ -12,6 +13,7 @@ from flux.self_evolution import SelfEvolution
 from flux.agent_factory import AgentFactory
 from flux.strategy_engine import StrategyEngine
 from flux.cluster_manager import ClusterManager
+from flux.redundancy_manager import RedundancyManager
 
 
 class SwarmOrchestrator:
@@ -25,6 +27,7 @@ class SwarmOrchestrator:
             self.factory = AgentFactory()
             self.strategy = StrategyEngine()
             self.cluster = ClusterManager()
+            self.redundancy = RedundancyManager()
 
             self.dev = DevAgent()
             self.fix = FixAgent()
@@ -58,14 +61,25 @@ class SwarmOrchestrator:
             except Exception as e:
                 logger.warning(f"Failed to sort actions by priority for {name}: {e}")
 
+            node = self.redundancy.ensure_alive()
+
             for action_name, action_func in actions:
                 try:
-                    # Distribuição via cluster
-                    result = self.cluster.dispatch(
-                        action_name,
-                        name,
-                        path
-                    )
+                    # Distribuição via cluster ou nó ativo redundante
+                    if node and "127.0.0.1" not in node:
+                         logger.info(f"Dispatching {action_name} for {name} to remote node: {node}")
+                         resp = requests.post(
+                             f"{node}/command",
+                             json={"action": action_name, "repo": name},
+                             timeout=15
+                         )
+                         result = resp.json()
+                    else:
+                        result = self.cluster.dispatch(
+                            action_name,
+                            name,
+                            path
+                        )
 
                     success = "error" not in str(result).lower()
 
