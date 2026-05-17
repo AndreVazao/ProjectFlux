@@ -2,7 +2,7 @@ from flux.github_manager import GitHubManager
 from flux.workflow_generator import WorkflowGenerator
 from flux.deploy_manager import DeployManager
 from flux.git_manager import GitManager
-from flux.providers_manager import ProvidersManager
+from flux.providers import ProviderManager
 from pathlib import Path
 import os
 
@@ -11,7 +11,7 @@ class ExecutionEngine:
 
     def __init__(self):
         self.github = GitHubManager()
-        self.providers = ProvidersManager()
+        self.providers = ProviderManager()
 
     def execute(self, idea):
 

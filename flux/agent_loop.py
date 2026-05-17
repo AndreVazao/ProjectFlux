@@ -6,7 +6,7 @@ from flux.evolution_engine import EvolutionEngine
 from flux.deploy_manager import DeployManager
 from flux.fix_engine import FixEngine
 from flux.repo_registry import RepoRegistry
-from flux.providers_manager import ProvidersManager
+from flux.providers import ProviderManager
 
 
 class AgentLoop:
@@ -15,7 +15,7 @@ class AgentLoop:
         self.ai = AIEngine()
         self.memory = MemoryEngine()
         self.registry = RepoRegistry()
-        self.providers = ProvidersManager()
+        self.providers = ProviderManager()
         self.deploy = DeployManager(self.providers)
         self.running = False
 

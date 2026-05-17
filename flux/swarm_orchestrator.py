@@ -1,4 +1,6 @@
 import threading
+import logging
+from flux.config import logger
 from flux.agents.dev_agent import DevAgent
 from flux.agents.fix_agent import FixAgent
 from flux.agents.deploy_agent import DeployAgent
@@ -15,25 +17,28 @@ from flux.cluster_manager import ClusterManager
 class SwarmOrchestrator:
 
     def __init__(self):
-        self.registry = RepoRegistry()
-        self.memory = MemoryEngine()
-        self.learning = LearningEngine()
-        self.self_evo = SelfEvolution()
-        self.factory = AgentFactory()
-        self.strategy = StrategyEngine()
-        self.cluster = ClusterManager()
+        try:
+            self.registry = RepoRegistry()
+            self.memory = MemoryEngine()
+            self.learning = LearningEngine()
+            self.self_evo = SelfEvolution()
+            self.factory = AgentFactory()
+            self.strategy = StrategyEngine()
+            self.cluster = ClusterManager()
 
-        # Nodes can be added here or via UI
-        # self.cluster.register_node("http://100.109.173.115:8001")
-
-        self.dev = DevAgent()
-        self.fix = FixAgent()
-        self.deploy = DeployAgent()
-        self.architect = ArchitectAgent()
+            self.dev = DevAgent()
+            self.fix = FixAgent()
+            self.deploy = DeployAgent()
+            self.architect = ArchitectAgent()
+        except Exception as e:
+            logger.critical(f"SwarmOrchestrator initialization failure: {e}", exc_info=True)
+            raise
 
     def process_repo(self, info):
         name = info["name"]
         path = info["path"]
+
+        logger.info(f"Swarm processing repo: {name}")
 
         try:
             arch = self.architect.analyze(name, path)
@@ -45,10 +50,13 @@ class SwarmOrchestrator:
             ]
 
             # ordenar por prioridade aprendida
-            actions.sort(
-                key=lambda x: self.learning.get_priority(name, x[0]),
-                reverse=True
-            )
+            try:
+                actions.sort(
+                    key=lambda x: self.learning.get_priority(name, x[0]),
+                    reverse=True
+                )
+            except Exception as e:
+                logger.warning(f"Failed to sort actions by priority for {name}: {e}")
 
             for action_name, action_func in actions:
                 try:
@@ -69,53 +77,72 @@ class SwarmOrchestrator:
                     )
 
                 except Exception as e:
+                    logger.error(f"Error in action {action_name} for {name}: {e}")
                     self.learning.record(name, action_name, False)
                     self.memory.save_decision(name, f"{action_name} → ERROR: {str(e)}")
 
         except Exception as e:
+            logger.error(f"Error analyzing repo {name}: {e}")
             self.memory.save_decision(name, f"ERROR → {str(e)}")
 
     def run(self):
+        logger.info("Swarm Orchestrator run started.")
         results = []
         threads = []
 
-        repos = self.registry.get_all()
-        for repo_id, info in repos.items():
-            t = threading.Thread(target=self.process_repo, args=(info,))
-            t.start()
-            threads.append(t)
+        try:
+            repos = self.registry.get_all()
+            if not repos:
+                logger.info("No repos in registry.")
+                return "No repos to process."
 
-        for t in threads:
-            t.join()
+            for repo_id, info in repos.items():
+                t = threading.Thread(target=self.safe_process_repo, args=(info,))
+                t.start()
+                threads.append(t)
 
-        # 🧠 decidir estratégia global
-        learning_data = self.learning.data
-        plan = self.strategy.decide(learning_data)
-        results.append(f"📊 Strategy: {plan}")
+            for t in threads:
+                t.join()
 
-        # 🧬 auto evolução do sistema
-        evo = self.self_evo.evolve_system()
-        results.append(evo)
+            # 🧠 decidir estratégia global
+            learning_data = self.learning.data
+            plan = self.strategy.decide(learning_data)
+            results.append(f"📊 Strategy: {plan}")
 
-        return "\n".join(results)
+            # 🧬 auto evolução do sistema
+            evo = self.self_evo.evolve_system()
+            results.append(evo)
+
+            logger.info("Swarm Orchestrator run completed.")
+            return "\n".join(results)
+        except Exception as e:
+            logger.error(f"Global Swarm failure: {e}", exc_info=True)
+            return f"Swarm Failure: {e}"
+
+    def safe_process_repo(self, info):
+        try:
+            self.process_repo(info)
+        except Exception as e:
+            logger.error(f"Unhandled error processing repo {info.get('name')}: {e}", exc_info=True)
 
     def smart_sync_all(self):
-        # Implementation of smart_sync_all used in UI
+        logger.info("UI Command: smart_sync_all triggered")
         results = []
-        repos = self.registry.get_all()
-        for repo_id, info in repos.items():
-            res = self.cluster.dispatch("sync", info["name"], info["path"])
-            results.append(f"{info['name']}: {res}")
-        return "\n".join(results)
+        try:
+            repos = self.registry.get_all()
+            for repo_id, info in repos.items():
+                res = self.cluster.dispatch("sync", info["name"], info["path"])
+                results.append(f"{info['name']}: {res}")
+            return "\n".join(results)
+        except Exception as e:
+            logger.error(f"Error in smart_sync_all: {e}")
+            return str(e)
 
     def bootstrap(self, path):
-        # Implementation of bootstrap used in UI
         return f"Bootstrap complete in {path}"
 
     def cascade(self, repo, path):
-        # Implementation of cascade used in UI
         return f"Cascade update for {repo} in {path}"
 
     def link(self, parent, child):
-        # Implementation of link used in UI
         return f"Linked {parent} to {child}"

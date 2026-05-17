@@ -1,11 +1,11 @@
 from flux.deploy_manager import DeployManager
-from flux.providers_manager import ProvidersManager
+from flux.providers import ProviderManager
 
 
 class DeployAgent:
 
     def __init__(self):
-        self.providers = ProvidersManager()
+        self.providers = ProviderManager()
         self.deploy = DeployManager(self.providers)
 
     def run(self, repo, path):

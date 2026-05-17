@@ -8,13 +8,13 @@ from flux.cloud_nodes import (
 )
 from flux.cloud_router import CloudRouter
 from flux.github_manager import GitHubManager
-from flux.providers_manager import ProvidersManager
+from flux.providers import ProviderManager
 
 class ClusterManager:
 
     def __init__(self):
         self.nodes = []
-        self.providers = ProvidersManager()
+        self.providers = ProviderManager()
         self.github = GitHubManager()
         self.router = CloudRouter()
 
