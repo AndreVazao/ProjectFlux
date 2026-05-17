@@ -5,7 +5,7 @@ from flux.sync_engine import SyncEngine
 from flux.evolution_engine import EvolutionEngine
 from flux.deploy_manager import DeployManager
 from flux.fix_engine import FixEngine
-from flux.providers_manager import ProvidersManager
+from flux.providers import ProviderManager
 
 app = FastAPI()
 
@@ -32,7 +32,7 @@ def execute(task: Task):
             result = EvolutionEngine().evolve(task.path)
 
         elif task.action == "deploy":
-            providers = ProvidersManager()
+            providers = ProviderManager()
             result = DeployManager(providers).auto_deploy_smart(task.repo, task.path)
 
         else:
