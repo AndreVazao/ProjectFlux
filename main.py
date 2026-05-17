@@ -4,6 +4,8 @@ import threading
 import uvicorn
 import logging
 import time
+from flux.watchdog import Watchdog
+from flux.consciousness import Consciousness
 
 # 🔥 FIX PYINSTALLER PATH & IMPORTS
 if getattr(sys, 'frozen', False):
@@ -29,6 +31,21 @@ def start_fastapi():
     except Exception as e:
         logger.error(f"FastAPI Server Crash: {e}", exc_info=True)
 
+def start_watchdog():
+    logger.info("Starting Global Watchdog...")
+    Watchdog("http://127.0.0.1:8000").run()
+
+def consciousness_loop():
+    logger.info("Starting Operational Consciousness...")
+    c = Consciousness()
+    while True:
+        try:
+            result = c.run_cycle()
+            logger.debug(f"CONSCIOUSNESS CYCLE: {result}")
+        except Exception as e:
+            logger.error(f"Consciousness Cycle Error: {e}")
+        time.sleep(10)
+
 def main():
     logger.info("ProjectFlux Starting...")
 
@@ -47,6 +64,10 @@ def main():
     time.sleep(1)
     if not server_thread.is_alive():
         logger.error("FastAPI Server thread died immediately after start.")
+
+    # Start Watchdog and Consciousness
+    threading.Thread(target=start_watchdog, daemon=True, name="Watchdog-Thread").start()
+    threading.Thread(target=consciousness_loop, daemon=True, name="Consciousness-Thread").start()
 
     try:
         # Start the main PyQt6 application

@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import subprocess
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -112,6 +113,20 @@ class FluxUI(QWidget):
         btn_stop_swarm.clicked.connect(self.safe_call(self.stop_swarm))
         btn_layout.addWidget(btn_stop_swarm)
 
+        btn_layout.addWidget(QLabel("<b>🖥️ WINDOWS SERVICE</b>"))
+
+        btn_service_start = QPushButton("▶️ Start Service")
+        btn_service_start.clicked.connect(self.safe_call(self.service_start))
+        btn_layout.addWidget(btn_service_start)
+
+        btn_service_stop = QPushButton("⏹️ Stop Service")
+        btn_service_stop.clicked.connect(self.safe_call(self.service_stop))
+        btn_layout.addWidget(btn_service_stop)
+
+        btn_service_status = QPushButton("🔍 Service Status")
+        btn_service_status.clicked.connect(self.safe_call(self.service_status))
+        btn_layout.addWidget(btn_service_status)
+
         btn_layout.addWidget(QLabel("<b>📂 REPO MANAGEMENT</b>"))
 
         btn_sync_all = QPushButton("🔄 Smart Sync All")
@@ -189,6 +204,18 @@ class FluxUI(QWidget):
     def stop_swarm(self):
         self.swarm_thread.stop()
         self.chat_display.append("🐝 Swarm Stopped")
+
+    def service_start(self):
+        subprocess.run("sc start ProjectFluxService", shell=True)
+        self.chat_display.append("⚙️ Service start command sent.")
+
+    def service_stop(self):
+        subprocess.run("sc stop ProjectFluxService", shell=True)
+        self.chat_display.append("⚙️ Service stop command sent.")
+
+    def service_status(self):
+        result = subprocess.getoutput("sc query ProjectFluxService")
+        self.chat_display.append(f"⚙️ Service Status:\n{result}")
 
     def agent_update(self, text):
         self.chat_display.append(f"🤖 <b>AI:</b> {text}")

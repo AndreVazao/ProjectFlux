@@ -31,3 +31,21 @@ class DecisionEngine:
             "action": "none",
             "reason": "No action needed"
         }
+
+    def decide(self, policy_output):
+        actions = []
+
+        for item in policy_output:
+            if item == "reduce_load":
+                actions.append(("scale_down", None))
+
+            elif isinstance(item, tuple):
+                action, node = item
+
+                if action == "restart_node":
+                    actions.append(("restart", node))
+
+                elif action == "failover":
+                    actions.append(("failover", node))
+
+        return actions
